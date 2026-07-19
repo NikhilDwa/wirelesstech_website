@@ -1,0 +1,32 @@
+APPS:
+    log_level :
+    host :
+    port :
+    frontend_url :
+
+CORS:
+    allowed_origins : []
+
+JWT:
+    SECRET_KEY :
+    ALGORITHM :
+
+GOOGLE:
+    CLIENT_ID :
+
+POSTGRESQL_DATABASE:
+    postgresql_user :
+    hostname :
+    password :
+    database :
+
+RESEND:
+    api_key:
+    from:
+
+CRON_EMAIL:
+    from :
+    to :
+    error_to :
+    report_to :
+    transaction_alert_to:

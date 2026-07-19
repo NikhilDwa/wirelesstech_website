@@ -1,0 +1,18 @@
+# Secrets — never commit the real config
+config/config.yml
+.env
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Runtime artifacts
+logs/
+uploads/
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store

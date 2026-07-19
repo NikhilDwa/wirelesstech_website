@@ -1,0 +1,15 @@
+pytz
+pyyaml
+twilio
+fastapi
+sqlalchemy
+passlib[bcrypt]
+psycopg2-binary
+python-multipart
+uvicorn[standard]
+python-jose[cryptography]
+bcrypt==3.2.0
+cryptography
+email-validator
+google-auth
+requests
