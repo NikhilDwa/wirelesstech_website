@@ -24,6 +24,13 @@ RESEND:
     api_key:
     from:
 
+# Every "to"-style field below takes one address or several. All three forms work:
+#     report_to : one@example.com
+#     report_to : [one@example.com, two@example.com]
+#     report_to :
+#         - one@example.com
+#         - two@example.com
+# Recipients of one message all appear in the same To header and can see each other.
 CRON_EMAIL:
     from :
     to :
