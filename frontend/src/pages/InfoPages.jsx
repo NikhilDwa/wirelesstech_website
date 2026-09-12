@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { Img, PhoneInput } from "../components";
-import { SHOP_INFO, MAP_EMBED_URL } from "../config";
+import { SHOP_INFO, BRANCHES } from "../config";
 
 export function About() {
   return (
@@ -179,29 +179,44 @@ export function Contact() {
               {SHOP_INFO.hours.map((h) => <p key={h}>{h}</p>)}
             </div>
             <div className="contact-card">
-              <span className="ico">📞</span>
-              <b>Phone</b>
-              <p>{SHOP_INFO.phone}</p>
-            </div>
-            <div className="contact-card">
               <span className="ico">✉️</span>
               <b>Email</b>
-              <p>{SHOP_INFO.email}</p>
-            </div>
-            <div className="contact-card">
-              <span className="ico">📍</span>
-              <b>Location</b>
-              <p>{SHOP_INFO.location}</p>
+              <p>
+                <a className="contact-card-link" href={`mailto:${SHOP_INFO.email}`}>
+                  {SHOP_INFO.email}
+                </a>
+              </p>
             </div>
           </div>
-          <iframe
-            className="contact-map"
-            src={MAP_EMBED_URL}
-            title="Wireless Tech store location"
-            loading="lazy"
-            allowFullScreen
-            referrerPolicy="no-referrer-when-downgrade"
-          />
+
+          <div className="branch-cards">
+            {BRANCHES.map((b) => (
+              <article className="branch-card" key={b.name}>
+                <div className="branch-head">
+                  <span className="branch-tag">{b.name}</span>
+                  <p className="branch-line">
+                    <span className="bi" aria-hidden="true">📍</span>
+                    <span>{b.address}</span>
+                  </p>
+                  <a
+                    className="branch-line branch-phone"
+                    href={`tel:${b.phone.replace(/[^\d+]/g, "")}`}
+                  >
+                    <span className="bi" aria-hidden="true">📞</span>
+                    <span>{b.phone}</span>
+                  </a>
+                </div>
+                <iframe
+                  className="branch-map"
+                  src={b.mapUrl}
+                  title={`${b.name} store location — ${b.address}`}
+                  loading="lazy"
+                  allowFullScreen
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              </article>
+            ))}
+          </div>
         </div>
         <form className="form" style={{ margin: 0 }} onSubmit={submit}>
           <h2>Send us a message</h2>

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, NavLink, Navigate, useLocation } from "react-router-dom";
 import { api, money } from "./api";
 import { useAuth, useCart } from "./context";
-import { SHOP_INFO, MAP_EMBED_URL, SOCIAL_LINKS } from "./config";
+import { SHOP_INFO, MAP_EMBED_URL, SOCIAL_LINKS, BRANCHES } from "./config";
 
 // Service tiles shown on the home page and cart page
 const SERVICE_TILES = [
@@ -115,6 +115,28 @@ export function Img({ src, alt, className, fallback, priority }) {
   );
 }
 
+// Shopping cart glyph for the navbar (stroke-based so it inherits the link colour)
+function CartIcon() {
+  return (
+    <svg
+      className="cart-icon"
+      viewBox="0 0 24 24"
+      width="22"
+      height="22"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M2.5 3h2l2.2 11.2a1.6 1.6 0 0 0 1.6 1.3h8.3a1.6 1.6 0 0 0 1.6-1.3L20 7H5.2" />
+      <circle cx="9.5" cy="19.5" r="1.4" />
+      <circle cx="16.5" cy="19.5" r="1.4" />
+    </svg>
+  );
+}
+
 export function Navbar() {
   const { user, logout } = useAuth();
   const { count } = useCart();
@@ -141,8 +163,13 @@ export function Navbar() {
         <NavLink to="/contact">CONTACT</NavLink>
       </nav>
       <div className="nav-actions">
-        <Link to="/cart" className="cart-link">
-          Cart{count > 0 && <span className="cart-badge">{count}</span>}
+        <Link
+          to="/cart"
+          className="cart-link"
+          aria-label={`Cart, ${count} item${count === 1 ? "" : "s"}`}
+        >
+          <CartIcon />
+          {count > 0 && <span className="cart-badge">{count}</span>}
         </Link>
         {!user ? (
           <>
@@ -151,8 +178,12 @@ export function Navbar() {
           </>
         ) : (
           <div className="nav-user">
-            <button className="btn btn-ghost" onClick={() => setMenuOpen(!menuOpen)}>
-              {user.username} ▾
+            <button className="nav-user-btn" onClick={() => setMenuOpen(!menuOpen)}>
+              <span className="nav-avatar" aria-hidden="true">
+                {(user.username || "?").charAt(0).toUpperCase()}
+              </span>
+              <span className="nav-user-name">{user.username}</span>
+              <span className={`nav-caret ${menuOpen ? "open" : ""}`} aria-hidden="true">▾</span>
             </button>
             {menuOpen && (
               <div className="nav-user-menu" onClick={() => setMenuOpen(false)}>
@@ -186,7 +217,14 @@ export function Footer() {
             </li>
             <li>
               <span className="fc-ico">📞</span>
-              <a href={`tel:${SHOP_INFO.phone.replace(/[^\d+]/g, "")}`}>{SHOP_INFO.phone}</a>
+              <span>
+                {BRANCHES.map((b) => (
+                  <span key={b.name} className="fc-line fc-line-branch">
+                    <span className="fc-branch">{b.name}</span>
+                    <a href={`tel:${b.phone.replace(/[^\d+]/g, "")}`}>{b.phone}</a>
+                  </span>
+                ))}
+              </span>
             </li>
             <li>
               <span className="fc-ico">✉️</span>
@@ -194,18 +232,15 @@ export function Footer() {
             </li>
             <li>
               <span className="fc-ico">📍</span>
-              <span>{SHOP_INFO.location}</span>
+              <span>
+                {BRANCHES.map((b) => (
+                  <span key={b.name} className="fc-line fc-line-branch">
+                    <span className="fc-branch">{b.name}</span>
+                    <span>{b.address}</span>
+                  </span>
+                ))}
+              </span>
             </li>
-          </ul>
-        </div>
-        <div>
-          <h4>Categories</h4>
-          <ul className="footer-cats">
-            {SHOP_INFO.footerCategories.map((c) => (
-              <li key={c}>
-                <Link to="/shop"><span className="cat-arrow">›</span>{c}</Link>
-              </li>
-            ))}
           </ul>
         </div>
         <div>
