@@ -31,6 +31,12 @@ RESEND:
 #         - one@example.com
 #         - two@example.com
 # Recipients of one message all appear in the same To header and can see each other.
+#
+#   from     single sender address (never a list) - used when RESEND.from is blank
+#   to       shop alerts for every order event: placed, cancelled, status changed.
+#            Leave blank to switch order alerts off entirely.
+#   report_to  contact-form and repair-estimate submissions
+#   error_to, transaction_alert_to  reserved, nothing reads them yet
 CRON_EMAIL:
     from :
     to :

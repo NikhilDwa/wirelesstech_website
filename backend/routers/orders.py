@@ -8,6 +8,7 @@ from db.database import db_dependency
 from db.db_models import Order, OrderItem, OrderStatus, Product, User
 from db.base_models import OrderCountsOut, OrderCreate, OrderOut, OrderStatusUpdate
 from utils.logger_utils import Logger
+from utils.path_utils import PathUtils
 from utils.email_utils import EmailUtils
 from utils.generic_utils import get_current_datetime, log_activity
 from routers.auth import admin_dependency, user_dependency
@@ -25,6 +26,11 @@ class OrderRouter:
             tags=["orders"],
             responses={404: {"description": "Not found"}},
         )
+        # Shop-side order alerts go to CRON_EMAIL.to, which may hold one address,
+        # a YAML list, or a comma-separated string (EmailUtils normalises all three).
+        # Read once at import, so changing it requires restarting the service.
+        cron_config = PathUtils().get_configuration().get("CRON_EMAIL") or {}
+        self.shop_emails = cron_config.get("to")
         self.setup_routes()
 
     def send_order_email(self, to_email: str, subject: str, message: str) -> None:
@@ -35,6 +41,46 @@ class OrderRouter:
             )
         except Exception:
             self.logger.exception("Failed to send order email.")
+
+    def notify_shop(self, subject: str, message: str) -> None:
+        """Copy an order alert to the shop inbox(es) in CRON_EMAIL.to.
+        Silently does nothing when that key is blank, and never breaks the request."""
+        if not self.shop_emails:
+            return
+        try:
+            EmailUtils().send_transactional_email(
+                to=self.shop_emails, subject_request=subject, message_request=message
+            )
+        except Exception:
+            self.logger.exception("Failed to send shop order alert.")
+
+    def order_summary(self, order: Order, user_row: Optional[User]) -> str:
+        """Build the shop-facing order breakdown.
+
+        Called synchronously while the DB session is still open — the ORM
+        attributes it touches (notably order.items) would fail to lazy-load
+        inside a background task, after the session has closed.
+        """
+        items_text = "\n".join(
+            f"  - {i.product_name} x{i.quantity} @ ${i.unit_price}"
+            f"  = ${Decimal(str(i.unit_price)) * i.quantity:.2f}"
+            for i in order.items
+        )
+        phone = order.phone or (user_row.phone_number if user_row else "") or "-"
+        return (
+            f"Order   : {order.order_number}\n"
+            f"Status  : {order.status}\n"
+            f"Total   : ${order.total:.2f}\n"
+            f"Payment : cash on delivery\n"
+            f"Placed  : {order.created_at:%d %b %Y, %I:%M %p}\n"
+            f"\n"
+            f"Customer: {(user_row.username if user_row else None) or 'unknown'}\n"
+            f"Email   : {(user_row.user_email if user_row else None) or '-'}\n"
+            f"Phone   : {phone}\n"
+            f"Ship to : {order.shipping_address}\n"
+            f"\n"
+            f"Items:\n{items_text}"
+        )
 
     def backfill_item_images(self, db, orders: list[Order]) -> list[Order]:
         """Orders placed before the image snapshot was added have a blank
@@ -151,6 +197,11 @@ class OrderRouter:
                         f"We'll email you when the status changes."
                     ),
                 )
+            background_tasks.add_task(
+                self.notify_shop,
+                f"New order {order.order_number} - ${order.total:.2f}",
+                f"A new order was just placed.\n\n{self.order_summary(order, user_row)}",
+            )
             return order
 
         @self.router.put("/{order_id}/cancel", response_model=OrderOut)
@@ -194,6 +245,12 @@ class OrderRouter:
                     f"Your order {order.order_number} has been cancelled and the items "
                     f"returned to stock.",
                 )
+            background_tasks.add_task(
+                self.notify_shop,
+                f"Order {order.order_number} cancelled by customer",
+                f"The customer cancelled this order. Stock has been returned "
+                f"automatically.\n\n{self.order_summary(order, user_row)}",
+            )
             return order
 
         @self.router.get("/my", response_model=list[OrderOut])
@@ -316,6 +373,17 @@ class OrderRouter:
                     f"Hi {user_row.username},\n\n"
                     f"Your order {order.order_number} is now '{order.status}'.",
                 )
+            background_tasks.add_task(
+                self.notify_shop,
+                f"Order {order.order_number} -> {order.status}",
+                f"An admin changed this order's status to '{order.status}'."
+                + (
+                    " Stock has been returned automatically."
+                    if new_status == OrderStatus.CANCELLED
+                    else ""
+                )
+                + f"\n\n{self.order_summary(order, user_row)}",
+            )
             return order
 
 

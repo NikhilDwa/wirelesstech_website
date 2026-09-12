@@ -121,7 +121,14 @@ Then fill it in. `config.yml` holds live secrets and is gitignored — never com
 | `RESEND` | `api_key` | Blank means email is skipped and logged as an error, not raised |
 | | `from` | Verified sender. Falls back to `CRON_EMAIL.from` if unset |
 | `CRON_EMAIL` | `report_to` | Where contact-form and repair-estimate enquiries are delivered |
-| | `from`, `to`, `error_to`, `transaction_alert_to` | Operational addresses |
+| | `to` | Shop alerts for every order event. Blank switches order alerts off |
+| | `from` | Sender fallback when `RESEND.from` is blank. Must be a single address |
+| | `error_to`, `transaction_alert_to` | Reserved — nothing reads them yet |
+
+Every `*_to` field accepts one address, a YAML list, or a comma-separated string —
+`utils/email_utils.py:as_recipients()` normalises all three, trims whitespace, drops blanks
+and de-duplicates. `from` is the exception and must stay a single address. Config is read at
+import, so any change here needs a service restart.
 
 ### 4. Run
 
@@ -286,6 +293,13 @@ inserting a duplicate.
 
 Order placement locks each product row with `SELECT ... FOR UPDATE` before decrementing
 stock, so two simultaneous checkouts cannot both claim the last unit.
+
+**Emails.** All three write-endpoints send two messages in background tasks: a short one to
+the customer, and a full breakdown to the shop addresses in `CRON_EMAIL.to` (order number,
+status, total, customer, phone, shipping address, itemised lines). `order_summary()` builds
+that text **synchronously**, before the task is queued — `order.items` would fail to
+lazy-load inside the task, once the request's DB session has closed. Keep that ordering if
+you add another alert.
 
 ### `/api/gallery`
 
