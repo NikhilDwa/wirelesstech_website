@@ -38,7 +38,7 @@ export const BRANCHES = [
 
 // Social profiles linked from the footer icons — replace with your real pages
 export const SOCIAL_LINKS = {
-  twitter: "https://twitter.com/",
-  facebook: "https://facebook.com/",
-  instagram: "https://instagram.com/",
+  tiktok: "https://www.tiktok.com/@techwireless16",
+  facebook: "https://www.facebook.com/techwireless16/",
+  instagram: "https://www.instagram.com/techwireless16/",
 };
